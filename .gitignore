@@ -1,0 +1,22 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyd
+*.so
+.Python
+build/
+dist/
+*.egg-info/
+.pytest_cache/
+.coverage
+
+# Virtualenv
+.venv/
+venv/
+
+# IDE
+.idea/
+.vscode/
+
+# Local tool state
+.scalesync/

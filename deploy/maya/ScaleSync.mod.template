@@ -1,0 +1,6 @@
++ ScaleSync 0.1.0 C:/path/to/ScaleSync
+PYTHONPATH +:= .
+MAYA_PLUG_IN_PATH +:= deploy/maya/plug-ins
+MAYA_SCRIPT_PATH +:= deploy/maya/scripts
+XBMLANGPATH +:= deploy/maya/icons
+

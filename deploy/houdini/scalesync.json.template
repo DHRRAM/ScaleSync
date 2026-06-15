@@ -1,0 +1,15 @@
+{
+  "enable": true,
+  "env": [
+    {
+      "SCALESYNC_ROOT": "C:/path/to/ScaleSync"
+    },
+    {
+      "PYTHONPATH": "$SCALESYNC_ROOT;$PYTHONPATH"
+    },
+    {
+      "HOUDINI_PATH": "$SCALESYNC_ROOT/deploy/houdini;&"
+    }
+  ]
+}
+

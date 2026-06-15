@@ -1,0 +1,38 @@
+{
+    "resolver": {
+        "canonical_unit": "m",
+        "maya_working_unit": "cm",
+        "default_source_unit": "cm",
+        "source_units_by_dcc": {
+            "maya": "cm",
+            "houdini": "m",
+            "blender": "m",
+            "unknown": "cm"
+        },
+        "heuristics": {
+            "enabled": true,
+            "tiny_height_m": 0.05,
+            "huge_height_m": 1000.0,
+            "tiny_scale_multiplier": 100.0,
+            "huge_scale_multiplier": 0.01
+        }
+    },
+    "maya": {
+        "freeze_scale_on_import": true,
+        "enforce_validation_gate": true,
+        "tag_metadata": true,
+        "apply_scale_to_top_groups_only": true,
+        "block_non_uniform_scale": true,
+        "block_non_one_scale": true,
+        "allow_joint_scaling": false,
+        "export_in_meters": true
+    },
+    "blender": {
+        "freeze_scale_on_import": true,
+        "enforce_validation_gate": true,
+        "tag_metadata": true,
+        "block_non_uniform_scale": true,
+        "block_non_one_scale": true,
+        "export_in_meters": true
+    }
+}

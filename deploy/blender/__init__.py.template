@@ -1,0 +1,21 @@
+"""ScaleSync Blender add-on bootstrap template."""
+
+from __future__ import annotations
+
+import sys
+
+bl_info = {
+    "name": "ScaleSync",
+    "author": "Dhruv Ram",
+    "version": (0, 1, 0),
+    "blender": (4, 2, 0),
+    "location": "3D View > Sidebar > ScaleSync",
+    "description": "Cross-DCC scale normalization for FBX, OBJ, and USD",
+    "category": "Import-Export",
+}
+
+SCALESYNC_ROOT = r"<SCALESYNC_ROOT>"
+if SCALESYNC_ROOT not in sys.path:
+    sys.path.insert(0, SCALESYNC_ROOT)
+
+from scalesync.blender.addon import register, unregister
