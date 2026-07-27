@@ -7,7 +7,7 @@ import sys
 bl_info = {
     "name": "ScaleSync",
     "author": "Dhruv Ram",
-    "version": (0, 1, 0),
+    "version": (0, 2, 0),
     "blender": (4, 2, 0),
     "location": "3D View > Sidebar > ScaleSync",
     "description": "Cross-DCC scale normalization for FBX, OBJ, and USD",

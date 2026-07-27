@@ -6,6 +6,7 @@ import re
 from pathlib import Path
 from typing import Optional
 
+from ..export_metadata import read_export_metadata
 from ..units import unit_from_meters_per_unit
 
 _DCC_TOKENS = {
@@ -13,15 +14,31 @@ _DCC_TOKENS = {
     "blender": ("blender",),
     "maya": ("maya", "autodesk"),
 }
+_SCALESYNC_UNIT_RE = re.compile(
+    r"scalesync[^\r\n]*exported_unit\s*=\s*([a-z]+)",
+    re.IGNORECASE,
+)
 
 
 class BaseFormatHandler:
     """Base interface for file format readers."""
 
     def read_metadata_unit(self, file_path: Path) -> Optional[str]:
+        metadata = read_export_metadata(file_path)
+        exported_unit = metadata.get("exported_unit")
+        if isinstance(exported_unit, str) and exported_unit:
+            return exported_unit
+
+        match = _SCALESYNC_UNIT_RE.search(self._read_text_blob(file_path))
+        if match:
+            return match.group(1)
         return None
     
     def detect_source_dcc(self, file_path: Path) -> Optional[str]:
+        metadata = read_export_metadata(file_path)
+        source_dcc = metadata.get("source_dcc")
+        if isinstance(source_dcc, str) and source_dcc in _DCC_TOKENS:
+            return source_dcc
         return self._detect_from_text_blob(self._read_text_blob(file_path))
     
     def estimate_height_in_source_units(self, file_path: Path) -> Optional[float]:
@@ -47,6 +64,10 @@ class USDHandler(BaseFormatHandler):
     METERS_PER_UNIT_RE = re.compile(r"metersPerUnit\s*=\s*([0-9eE.+\-]+)")
 
     def read_metadata_unit(self, file_path: Path) -> Optional[str]:
+        scalesync_unit = super().read_metadata_unit(file_path)
+        if scalesync_unit:
+            return scalesync_unit
+
         try:
             from pxr import Usd, UsdGeom # type: ignore
 
@@ -81,6 +102,10 @@ class FBXHandler(BaseFormatHandler):
     UNIT_SCALE_RE = re.compile(r"UnitScaleFactor[^0-9eE.+\-]*([0-9eE.+\-]+)")
 
     def read_metadata_unit(self, file_path: Path) -> Optional[str]:
+        scalesync_unit = super().read_metadata_unit(file_path)
+        if scalesync_unit:
+            return scalesync_unit
+
         text = self._read_text_blob(file_path)
         match = self.UNIT_SCALE_RE.search(text)
         if not match:

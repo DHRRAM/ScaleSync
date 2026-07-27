@@ -6,7 +6,7 @@ For artist distribution, build and send the self-contained Blender extension ZIP
 scalesync-build-blender
 ```
 
-This writes `dist/scalesync-0.1.0.zip`. Artists install that file using Blender's `Edit > Preferences > Add-ons > Install from Disk`. They should not extract the ZIP.
+This writes `dist/scalesync-0.2.0.zip`. Artists install that file using Blender's `Edit > Preferences > Add-ons > Install from Disk`. They should not extract the ZIP.
 
 ## Developer Setup
 

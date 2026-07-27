@@ -13,6 +13,7 @@ from ..constants import (
     SOURCE_UNIT_ATTR,
 )
 from ..errors import ScaleSyncError
+from ..textures import TextureSearchIndex
 
 
 class BlenderAdapter:
@@ -21,6 +22,7 @@ class BlenderAdapter:
     def __init__(self, bpy_module=None):
         if bpy_module is not None:
             self.bpy = bpy_module
+            self.last_relinked_textures: list[dict[str, str]] = []
             return
         try:
             import bpy  # type: ignore
@@ -29,27 +31,128 @@ class BlenderAdapter:
                 "Blender API is not available. Run this module inside Blender."
             ) from exc
         self.bpy = bpy
+        self.last_relinked_textures: list[dict[str, str]] = []
 
     def import_file(self, file_path: str | Path) -> list[Any]:
         path = Path(file_path)
         before = {obj.name for obj in self.bpy.data.objects}
+        before_images = {
+            self._image_identity(image) for image in self.bpy.data.images
+        }
         ext = path.suffix.lower()
 
         if ext == ".fbx":
-            self._call_operator(self.bpy.ops.import_scene.fbx, filepath=str(path))
+            self._call_operator(
+                self.bpy.ops.import_scene.fbx,
+                filepath=str(path),
+                use_image_search=True,
+            )
         elif ext == ".obj":
             operator = self._resolve_operator(
                 ("wm", "obj_import"),
                 ("import_scene", "obj"),
             )
-            self._call_operator(operator, filepath=str(path))
+            self._call_operator(
+                operator,
+                filepath=str(path),
+                use_image_search=True,
+            )
         elif ext in {".usd", ".usda", ".usdc"}:
             operator = self._resolve_operator(("wm", "usd_import"))
-            self._call_operator(operator, filepath=str(path))
+            self._call_operator(
+                operator,
+                filepath=str(path),
+                import_materials=True,
+                import_usd_preview=True,
+                import_textures_mode="IMPORT_PACK",
+            )
         else:
             raise ScaleSyncError(f"Unsupported Blender import format: {ext}")
 
+        imported_images = [
+            image
+            for image in self.bpy.data.images
+            if self._image_identity(image) not in before_images
+        ]
+        self.last_relinked_textures = self.relink_missing_textures(
+            path,
+            images=imported_images,
+        )
         return [obj for obj in self.bpy.data.objects if obj.name not in before]
+
+    def relink_missing_textures(
+        self,
+        source_file: str | Path,
+        *,
+        images: Iterable[Any] | None = None,
+    ) -> list[dict[str, str]]:
+        """Find unresolved imported images beside the source asset."""
+
+        search = TextureSearchIndex(source_file)
+        relinked: list[dict[str, str]] = []
+        candidates = list(images) if images is not None else list(self.bpy.data.images)
+
+        for image in candidates:
+            if getattr(image, "packed_file", None) is not None:
+                continue
+            if str(getattr(image, "source", "")).upper() in {
+                "GENERATED",
+                "VIEWER",
+            }:
+                continue
+
+            raw_references = [
+                getattr(image, "filepath_raw", ""),
+                getattr(image, "filepath", ""),
+                getattr(image, "name", ""),
+            ]
+            expanded_references: list[str] = []
+            abspath = getattr(getattr(self.bpy, "path", None), "abspath", None)
+            if callable(abspath):
+                for reference in raw_references[:2]:
+                    if not reference:
+                        continue
+                    try:
+                        expanded_references.append(str(abspath(reference)))
+                    except Exception:
+                        continue
+
+            resolved = search.resolve(*expanded_references, *raw_references)
+            if resolved is None:
+                continue
+
+            old_path = str(
+                getattr(image, "filepath_raw", "")
+                or getattr(image, "filepath", "")
+            )
+            new_path = str(resolved)
+            if old_path == new_path:
+                continue
+
+            try:
+                image.filepath = new_path
+            except Exception:
+                continue
+            try:
+                image.filepath_raw = new_path
+            except Exception:
+                pass
+            reload_image = getattr(image, "reload", None)
+            if callable(reload_image):
+                try:
+                    reload_image()
+                except Exception:
+                    pass
+
+            relinked.append(
+                {
+                    "image": str(getattr(image, "name", "")),
+                    "from": old_path,
+                    "to": new_path,
+                }
+            )
+
+        return relinked
 
     def export_selected(self, file_path: str | Path) -> None:
         path = Path(file_path)
@@ -276,6 +379,15 @@ class BlenderAdapter:
 
     def object_name(self, obj) -> str:
         return str(obj.name)
+
+    def _image_identity(self, image) -> int:
+        as_pointer = getattr(image, "as_pointer", None)
+        if callable(as_pointer):
+            try:
+                return int(as_pointer())
+            except Exception:
+                pass
+        return id(image)
 
     def _resolve_operator(self, *paths: tuple[str, str]):
         for module_name, operator_name in paths:

@@ -41,6 +41,12 @@ class MayaScaleImporter:
         pre_roots = set(self.adapter.scene_root_transforms())
         resolution = self.resolver.resolve(path)
         imported_nodes = self.adapter.import_file(path, file_type=file_type)
+        relink_textures = getattr(self.adapter, "relink_missing_textures", None)
+        relinked_textures = (
+            relink_textures(imported_nodes, path)
+            if callable(relink_textures)
+            else []
+        )
 
         roots = self._resolve_import_roots(imported_nodes, pre_roots)
         applied_scale_per_root: dict[str, float] = {}
@@ -102,6 +108,7 @@ class MayaScaleImporter:
             "applied_scale_per_root": applied_scale_per_root,
             "fallback_scale_factors": fallback_scale_factors,
             "scale_validation_warnings": validation_warnings,
+            "relinked_textures": relinked_textures,
             "resolution": resolution.to_dict(),
         }
 

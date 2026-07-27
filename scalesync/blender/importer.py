@@ -102,6 +102,9 @@ class BlenderScaleImporter:
             "applied_scale_per_root": applied_scale_per_root,
             "fallback_scale_factors": fallback_scale_factors,
             "scale_validation_warnings": warnings,
+            "relinked_textures": list(
+                getattr(self.adapter, "last_relinked_textures", [])
+            ),
             "resolution": resolution.to_dict(),
         }
 

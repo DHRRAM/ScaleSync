@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Any, Iterable
 
 from ..config import ScaleSyncConfig, load_config
+from ..export_metadata import write_export_metadata
 from .adapter import BlenderAdapter
 from .validator import BlenderScaleValidator
 
@@ -56,8 +57,20 @@ class BlenderScaleExporter:
             self.adapter.delete_objects(duplicates)
             self.adapter.restore_selection(selection)
 
+        metadata_file = None
+        export_path = Path(file_path)
+        if self.config.blender.export_in_meters and export_path.is_file():
+            metadata_file = write_export_metadata(
+                export_path,
+                source_dcc="blender",
+                exported_unit=self.config.resolver.canonical_unit,
+            )
+
         return {
-            "file": str(Path(file_path)),
+            "file": str(export_path),
+            "metadata_file": (
+                str(metadata_file) if metadata_file is not None else None
+            ),
             "source_roots": [
                 self.adapter.object_name(root) for root in root_objects
             ],

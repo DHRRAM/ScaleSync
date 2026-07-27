@@ -5,18 +5,23 @@ from __future__ import annotations
 import traceback
 
 import bpy  # type: ignore
-from bpy.props import StringProperty  # type: ignore
+from bpy.props import EnumProperty, StringProperty  # type: ignore
 from bpy_extras.io_utils import ExportHelper, ImportHelper  # type: ignore
 
 from . import actions
 from .exporter import BlenderScaleExporter
+from .formats import (
+    EXPORT_FORMAT_ITEMS,
+    export_format_from_path,
+    export_path_for_format,
+)
 from .importer import BlenderScaleImporter
 
 
 bl_info = {
     "name": "ScaleSync",
     "author": "Dhruv Ram",
-    "version": (0, 1, 0),
+    "version": (0, 2, 0),
     "blender": (4, 2, 0),
     "location": "3D View > Sidebar > ScaleSync",
     "description": "Cross-DCC scale normalization for FBX, OBJ, and USD",
@@ -54,15 +59,61 @@ class SCALESYNC_OT_export_meters(bpy.types.Operator, ExportHelper):
     bl_label = "ScaleSync Export Selection in Meters"
     bl_description = "Export selected hierarchies in canonical meter units"
 
+    # ExportHelper uses this only to prefill the initial filename. ScaleSync's
+    # format property and check() method manage the final extension.
     filename_ext = ".fbx"
+    check_extension = False
     filter_glob: StringProperty(
         default="*.fbx;*.obj;*.usd;*.usda;*.usdc",
         options={"HIDDEN"},
     )
+    export_format: EnumProperty(
+        name="File Type",
+        description="File format to export",
+        items=EXPORT_FORMAT_ITEMS,
+        default="FBX",
+        update=lambda self, context: self._update_export_format(context),
+    )
+
+    def _update_export_format(self, context):
+        _ = context
+        if self.filepath:
+            self.filepath = str(
+                export_path_for_format(self.filepath, self.export_format)
+            )
+
+    def check(self, context):
+        _ = context
+        path_format = export_format_from_path(self.filepath)
+        if path_format is not None:
+            if path_format != self.export_format:
+                self.export_format = path_format
+                return True
+            return False
+
+        export_path = str(
+            export_path_for_format(self.filepath, self.export_format)
+        )
+        if export_path == self.filepath:
+            return False
+        self.filepath = export_path
+        return True
+
+    def draw(self, context):
+        _ = context
+        self.layout.prop(self, "export_format")
 
     def execute(self, context):
         _ = context
         try:
+            path_format = export_format_from_path(self.filepath)
+            if path_format is not None:
+                self.export_format = path_format
+            else:
+                self.filepath = str(
+                    export_path_for_format(self.filepath, self.export_format)
+                )
+
             result = BlenderScaleExporter().export_in_meters(self.filepath)
             count = len(result["source_roots"])
             self.report({"INFO"}, f"ScaleSync exported {count} root object(s).")

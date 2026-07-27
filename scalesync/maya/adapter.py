@@ -13,6 +13,19 @@ from ..constants import (
     SOURCE_UNIT_ATTR,
 )
 from ..errors import ScaleSyncError
+from ..textures import TextureSearchIndex
+
+
+_TEXTURE_ATTRIBUTES_BY_NODE_TYPE = {
+    "aiImage": ("filename",),
+    "aiPhotometricLight": ("aiFilename",),
+    "file": ("fileTextureName",),
+    "imagePlane": ("imageName",),
+    "PxrTexture": ("filename",),
+    "RedshiftNormalMap": ("tex0",),
+    "RedshiftTextureSampler": ("tex0",),
+    "usdUVTexture": ("file",),
+}
 
 
 class MayaCmdsAdapter:
@@ -56,6 +69,75 @@ class MayaCmdsAdapter:
         if file_type:
             kwargs["type"] = file_type
         self.cmds.file(str(file_path), **kwargs)
+
+    def relink_missing_textures(
+        self,
+        nodes: Iterable[str],
+        source_file: str | Path,
+    ) -> list[dict[str, str]]:
+        """Relink imported Maya file-path attributes beside the source asset."""
+
+        search = TextureSearchIndex(source_file)
+        nodes_to_check = set(nodes)
+        for node in list(nodes_to_check):
+            try:
+                connections = self.cmds.listConnections(
+                    node,
+                    source=True,
+                    destination=True,
+                )
+            except Exception:
+                connections = None
+            nodes_to_check.update(connections or [])
+
+        relinked: list[dict[str, str]] = []
+        for node in sorted(nodes_to_check):
+            if not self.cmds.objExists(node):
+                continue
+            node_type = str(self.cmds.nodeType(node))
+            try:
+                filename_attrs = set(
+                    self.cmds.listAttr(node, usedAsFilename=True) or []
+                )
+            except Exception:
+                filename_attrs = set()
+            filename_attrs.update(
+                _TEXTURE_ATTRIBUTES_BY_NODE_TYPE.get(node_type, ())
+            )
+
+            for attr in sorted(filename_attrs):
+                plug = f"{node}.{attr}"
+                if not self.cmds.objExists(plug):
+                    continue
+                try:
+                    reference = self.cmds.getAttr(plug)
+                except Exception:
+                    continue
+                if not isinstance(reference, str) or not reference.strip():
+                    continue
+
+                expanded = self._expand_workspace_path(reference)
+                if self._texture_reference_exists(expanded, reference):
+                    continue
+                resolved = search.resolve(expanded, reference)
+                if resolved is None:
+                    continue
+
+                new_path = str(resolved)
+                try:
+                    self.cmds.setAttr(plug, new_path, type="string")
+                except Exception:
+                    continue
+                relinked.append(
+                    {
+                        "node": node,
+                        "attribute": attr,
+                        "from": reference,
+                        "to": new_path,
+                    }
+                )
+
+        return relinked
 
     def list_top_level_transforms(self, nodes: Iterable[str]) -> list[str]:
         transforms: set[str] = set()
@@ -196,6 +278,24 @@ class MayaCmdsAdapter:
     def current_linear_unit(self) -> str:
         value = self.cmds.currentUnit(query=True, linear=True)
         return str(value)
+
+    def _expand_workspace_path(self, reference: str) -> str:
+        try:
+            return str(self.cmds.workspace(expandName=reference))
+        except Exception:
+            return reference
+
+    def _texture_reference_exists(self, *references: str) -> bool:
+        for reference in references:
+            value = str(reference).strip()
+            if not value or any(
+                token in value
+                for token in ("<UDIM>", "%(UDIM)d", "$UDIM", "#", "$F")
+            ):
+                continue
+            if Path(value).expanduser().is_file():
+                return True
+        return False
     
     def _ensure_string_attr(self, node: str, attr: str, value: str) -> None:
         if not self.cmds.attributeQuery(attr, node=node, exists=True):

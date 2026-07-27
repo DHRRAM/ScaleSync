@@ -7,6 +7,7 @@ import traceback
 
 from . import actions
 from .ui import launch_scalesync_ui
+from ..version import __version__
 
 MENU_NAME = "ScaleSyncMenu"
 MENU_LABEL = "ScaleSync"
@@ -15,7 +16,7 @@ SHELF_TARGET_NAME = "Custom"
 SHELF_BUTTON_NAME = "ScaleSyncShelfButton"
 SHELF_BUTTON_LABEL = "ScaleSync"
 PLUGIN_VENDOR = "ScaleSync"
-PLUGIN_VERSION = "0.1.0"
+PLUGIN_VERSION = __version__
 
 
 def initializePlugin(plugin) -> None:  # noqa: N802 (Maya requires this name)

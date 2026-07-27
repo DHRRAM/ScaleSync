@@ -9,6 +9,8 @@ import re
 import sys
 from pathlib import Path
 
+from ..version import __version__
+
 
 def _repo_root() -> Path:
     return Path(__file__).resolve().parents[2]
@@ -118,7 +120,7 @@ def install_maya_module(
     repo_root: Path | None = None,
     modules_dir: Path | None = None,
     module_name: str = "ScaleSync",
-    version: str = "0.1.0",
+    version: str = __version__,
 ) -> Path:
     root = (repo_root or _repo_root()).resolve()
     target_dir = (modules_dir or _resolve_maya_modules_dir()).resolve()
@@ -184,7 +186,7 @@ import sys
 bl_info = {{
     "name": "ScaleSync",
     "author": "Dhruv Ram",
-    "version": (0, 1, 0),
+    "version": (0, 2, 0),
     "blender": (4, 2, 0),
     "location": "3D View > Sidebar > ScaleSync",
     "description": "Cross-DCC scale normalization for FBX, OBJ, and USD",
@@ -205,7 +207,7 @@ def install_maya_module_cli(argv: list[str] | None = None) -> int:
     parser.add_argument("--repo-root", type=Path, default=None, help="ScaleSync repo root path.")
     parser.add_argument("--modules-dir", type=Path, default=None, help="Maya modules directory.")
     parser.add_argument("--module-name", default="ScaleSync", help="Module name.")
-    parser.add_argument("--version", default="0.1.0", help="Module version label.")
+    parser.add_argument("--version", default=__version__, help="Module version label.")
     args = parser.parse_args(argv)
 
     path = install_maya_module(

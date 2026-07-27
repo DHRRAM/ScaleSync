@@ -47,7 +47,12 @@ class ScaleResolver:
         handler = self.handlers[file_format]
         evidence: list[ResolutionEvidence] = []
 
-        source_unit = self._resolve_source_unit_from_metadata(handler, path, evidence)
+        metadata_unit = self._resolve_source_unit_from_metadata(
+            handler,
+            path,
+            evidence,
+        )
+        source_unit = metadata_unit
         source_dcc = self._resolve_source_dcc(handler, path, evidence)
 
         if source_unit is None:
@@ -71,7 +76,11 @@ class ScaleResolver:
         if heuristic_height is None:
             heuristic_height = handler.estimate_height_in_source_units(path)
 
-        if self.config.resolver.heuristics.enabled and heuristic_height is not None:
+        if (
+            metadata_unit is None
+            and self.config.resolver.heuristics.enabled
+            and heuristic_height is not None
+        ):
             scale_to_meters, scale_to_maya_cm = self._apply_height_heuristics(
                 source_unit=source_unit,
                 height_in_source_units=heuristic_height,

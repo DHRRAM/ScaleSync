@@ -14,23 +14,29 @@ ScaleSync is a cross-DCC scale normalization toolchain for Maya, Blender, and Ho
   - heuristics fallback third
 - Maya import normalization:
   - automatic scale fix
+  - automatic relinking of missing material textures beside imported assets
   - transform freeze
   - metadata tagging
   - validation gate
 - Maya export wrapper:
   - duplicates selection
   - converts to meters
+  - records the exported meter unit for downstream DCCs
   - exports clean temp copy
 - Maya plugin menu:
   - one-click UI, import, validation, freeze-scale fix, scene scan, and export actions
 - Blender add-on:
   - 3D View sidebar panel and File menu entries
   - import normalization for `FBX/OBJ/USD`
+  - material import plus fallback texture discovery for adjacent folders and UDIMs
   - transform-aware prevention of duplicate unit scaling
   - validation, apply-scale fix, scene scan, and meter-normalized export
+  - records canonical export units to prevent downstream double-scaling
 - Houdini integration:
   - package installer
   - shared scale logic
+  - automatic relinking of material file parameters used by incoming geometry
+  - recognizes ScaleSync export provenance before applying unit conversion
   - HDA builder script for a ScaleSync SOP asset
 
 ## Install
@@ -47,6 +53,30 @@ For tests:
 pip install -e .[dev]
 pytest -q
 ```
+
+## Teammate Distribution
+
+Build all three current, self-contained archives with:
+
+```powershell
+scalesync-build-distributions
+```
+
+or:
+
+```powershell
+python -m scalesync.cli build-distributions
+```
+
+This creates:
+
+- `dist/ScaleSync-Blender-0.2.0.zip`
+- `dist/ScaleSync-Maya-0.2.0.zip`
+- `dist/ScaleSync-Houdini-0.2.0.zip`
+
+Blender installs its ZIP directly. Maya and Houdini do not natively install
+plug-ins from ZIP files, so those archives are extracted first and include a
+guided installer plus a portable payload and manual instructions.
 
 ## CLI
 
@@ -97,7 +127,7 @@ or:
 python -m scalesync.cli build-blender
 ```
 
-The distributable file is written to `dist/scalesync-0.1.0.zip`. Increment the version with `--version`, for example:
+The distributable file is written to `dist/scalesync-0.2.0.zip`. Increment the version with `--version`, for example:
 
 ```powershell
 scalesync-build-blender --version 0.2.0

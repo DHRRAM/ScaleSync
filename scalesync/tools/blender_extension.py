@@ -6,7 +6,9 @@ import argparse
 from pathlib import Path
 from zipfile import ZIP_DEFLATED, ZipFile, ZipInfo
 
-DEFAULT_VERSION = "0.1.0"
+from ..version import __version__
+
+DEFAULT_VERSION = __version__
 DEFAULT_BLENDER_VERSION_MIN = "4.2.0"
 
 PACKAGE_FILES = (
@@ -15,8 +17,11 @@ PACKAGE_FILES = (
     "scalesync/constants.py",
     "scalesync/default_config.json",
     "scalesync/errors.py",
+    "scalesync/export_metadata.py",
     "scalesync/model.py",
+    "scalesync/textures.py",
     "scalesync/units.py",
+    "scalesync/version.py",
     "scalesync/resolver/__init__.py",
     "scalesync/resolver/engine.py",
     "scalesync/resolver/handlers.py",
@@ -25,6 +30,7 @@ PACKAGE_FILES = (
     "scalesync/blender/adapter.py",
     "scalesync/blender/addon.py",
     "scalesync/blender/exporter.py",
+    "scalesync/blender/formats.py",
     "scalesync/blender/importer.py",
     "scalesync/blender/validator.py",
 )

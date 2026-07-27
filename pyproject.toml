@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "scalesync"
-version = "0.1.0"
+version = "0.2.0"
 description = "Cross-DCC asset scale normalization for Maya, Blender, and Houdini workflows."
 readme = "README.md"
 requires-python = ">=3.10"
@@ -27,6 +27,7 @@ scalesync = "scalesync.cli:main"
 scalesync-install-maya = "scalesync.tools.installers:install_maya_module_cli"
 scalesync-install-blender = "scalesync.tools.installers:install_blender_addon_cli"
 scalesync-build-blender = "scalesync.tools.blender_extension:main"
+scalesync-build-distributions = "scalesync.tools.distributions:main"
 scalesync-install-houdini = "scalesync.tools.installers:install_houdini_package_cli"
 scalesync-houdini-build-hda = "scalesync.houdini.hda_builder:main"
 

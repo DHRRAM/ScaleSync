@@ -3,12 +3,17 @@
 from __future__ import annotations
 
 import json
+from pathlib import Path
 from typing import Any
 
 from .normalizer import compute_scale_factor_to_meters
+from .textures import relink_material_textures
 
 
-def cook_current_node(node=None) -> dict[str, Any]:
+_SOURCE_FILE_EXTENSIONS = frozenset({".fbx", ".obj", ".usd", ".usda", ".usdc"})
+
+
+def cook_current_node(node=None, parameter_node=None) -> dict[str, Any]:
     """
     Scale geometry on a Python SOP/HDA to canonical meters.
 
@@ -23,15 +28,19 @@ def cook_current_node(node=None) -> dict[str, Any]:
     hnode = node or hou.pwd()
     if hnode is None:
         raise RuntimeError("No active Houdini node context.")
+    controls = parameter_node or hnode
 
     geo = hnode.geometry()
-    source_file = _parm_eval_string(hnode, "source_file")
-    source_unit_override = _parm_eval_string(hnode, "source_unit_override")
-    source_dcc_override = _parm_eval_string(hnode, "source_dcc_override")
-    measured_height = _parm_eval_float(hnode, "measured_height")
-    manual_multiplier = _parm_eval_float(hnode, "manual_multiplier")
-    apply_scale = bool(_parm_eval_int(hnode, "apply_scale"))
-    set_attributes = bool(_parm_eval_int(hnode, "set_attributes"))
+    source_file = _parm_eval_string(controls, "source_file")
+    if not source_file:
+        source_file = _infer_source_file(controls, hou)
+    source_unit_override = _parm_eval_string(controls, "source_unit_override")
+    source_dcc_override = _parm_eval_string(controls, "source_dcc_override")
+    measured_height = _parm_eval_float(controls, "measured_height")
+    manual_multiplier = _parm_eval_float(controls, "manual_multiplier")
+    apply_scale = bool(_parm_eval_int(controls, "apply_scale"))
+    set_attributes = bool(_parm_eval_int(controls, "set_attributes"))
+    relink_textures = _parm_eval_bool(controls, "relink_textures", default=True)
 
     result = compute_scale_factor_to_meters(
         source_file=source_file or None,
@@ -45,6 +54,17 @@ def cook_current_node(node=None) -> dict[str, Any]:
     if apply_scale and abs(factor - 1.0) > 1e-9:
         matrix = hou.hmath.buildScale((factor, factor, factor))
         geo.transform(matrix)
+
+    result["relinked_textures"] = (
+        relink_material_textures(
+            geo,
+            source_file,
+            context_node=controls,
+            hou_module=hou,
+        )
+        if relink_textures and source_file
+        else []
+    )
 
     if set_attributes:
         _set_or_add_global_attrib(geo, "scalesync_factor", factor)
@@ -81,3 +101,39 @@ def _parm_eval_int(node, name: str) -> int:
     parm = node.parm(name)
     return int(parm.eval()) if parm else 0
 
+
+def _parm_eval_bool(node, name: str, *, default: bool) -> bool:
+    parm = node.parm(name)
+    return bool(parm.eval()) if parm else bool(default)
+
+
+def _infer_source_file(node, hou_module) -> str:
+    try:
+        upstream_nodes = node.inputAncestors()
+    except Exception:
+        return ""
+
+    for upstream in upstream_nodes:
+        for parm in upstream.parms():
+            try:
+                template = parm.parmTemplate()
+                is_file_reference = (
+                    template.type() == hou_module.parmTemplateType.String
+                    and template.stringType()
+                    == hou_module.stringParmType.FileReference
+                )
+            except Exception:
+                is_file_reference = False
+            if not is_file_reference:
+                continue
+            try:
+                value = str(parm.evalAsString())
+                expanded = str(hou_module.expandString(value))
+            except Exception:
+                continue
+            if (
+                Path(expanded).suffix.lower() in _SOURCE_FILE_EXTENSIONS
+                and Path(expanded).is_file()
+            ):
+                return expanded
+    return ""

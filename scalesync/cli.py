@@ -11,6 +11,7 @@ from .config import load_config, user_config_path
 from .logging_utils import configure_logging
 from .resolver.engine import ScaleResolver
 from .tools.blender_extension import build_blender_extension
+from .tools.distributions import build_all_distributions
 from .tools.installers import (
     install_blender_addon,
     install_houdini_package,
@@ -47,8 +48,16 @@ def build_parser() -> argparse.ArgumentParser:
         help="Build a self-contained Blender extension ZIP.",
     )
     build_blender.add_argument("--output-dir", type=Path, default=None)
-    build_blender.add_argument("--version", default="0.1.0")
+    build_blender.add_argument("--version", default="0.2.0")
     build_blender.add_argument("--blender-version-min", default="4.2.0")
+
+    build_all = sub.add_parser(
+        "build-distributions",
+        help="Build self-contained Blender, Maya, and Houdini ZIPs.",
+    )
+    build_all.add_argument("--output-dir", type=Path, default=None)
+    build_all.add_argument("--version", default="0.2.0")
+    build_all.add_argument("--hda", type=Path, default=None)
 
     sub.add_parser("show-config-path", help="Print default per-user config path.")
     sub.add_parser("show-effective-config", help="Print effective merged config.")
@@ -136,6 +145,15 @@ def main(argv: list[str] | None = None) -> int:
             blender_version_min=args.blender_version_min,
         )
         print(path)
+        return 0
+
+    if args.command == "build-distributions":
+        for path in build_all_distributions(
+            output_dir=args.output_dir,
+            version=args.version,
+            hda_path=args.hda,
+        ):
+            print(path)
         return 0
     
     parser.print_help()

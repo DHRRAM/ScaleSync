@@ -6,8 +6,9 @@ import argparse
 from pathlib import Path
 
 PYTHON_SOP_SCRIPT = (
+    "import hou\n"
     "from scalesync.houdini.node_runtime import cook_current_node\n"
-    "cook_current_node()\n"
+    "cook_current_node(node=hou.pwd(), parameter_node=hou.pwd().parent())\n"
 )
 
 
@@ -43,13 +44,17 @@ def build_scalesync_hda(
         for child in geo.children():
             child.destroy()
 
-        python_sop = geo.createNode("python", "SCALESYNC_NORMALIZE")
+        subnet = geo.createNode("subnet", "SCALESYNC_NORMALIZE")
+        python_sop = subnet.createNode("python", "normalize")
         python_sop.parm("python").set(PYTHON_SOP_SCRIPT)
-        python_sop.setDisplayFlag(True)
-        python_sop.setRenderFlag(True)
+        python_sop.setInput(0, subnet.indirectInputs()[0])
+        output_sop = subnet.createNode("output", "output0")
+        output_sop.setInput(0, python_sop)
+        subnet.setDisplayFlag(True)
+        subnet.setRenderFlag(True)
 
         hda_name = f"{namespace}::{operator_name}::{version}"
-        hda_node = python_sop.createDigitalAsset(
+        hda_node = subnet.createDigitalAsset(
             name=hda_name,
             hda_file_name=output.as_posix(),
             description=label,
@@ -58,21 +63,21 @@ def build_scalesync_hda(
             create_backup=False,
         )
 
-        _configure_parameter_interface(hda_node)
         definition = hda_node.type().definition()
         if definition is None:
             raise RuntimeError("Failed to acquire HDA definition after creation.")
         definition.updateFromNode(hda_node)
+        _configure_parameter_interface(definition)
 
         return output
     finally:
         geo.destroy()
 
 
-def _configure_parameter_interface(hda_node) -> None:
+def _configure_parameter_interface(definition) -> None:
     import hou  # type: ignore
 
-    ptg = hda_node.parmTemplateGroup()
+    ptg = definition.parmTemplateGroup()
 
     # Hide raw Python SOP source parm; we call shared package runtime from it.
     python_template = ptg.find("python")
@@ -94,7 +99,7 @@ def _configure_parameter_interface(hda_node) -> None:
     folder.addParmTemplate(
         hou.StringParmTemplate(
             "source_unit_override",
-            "Source Unit Override",
+            "File Unit Override",
             1,
             default_value=("auto",),
             menu_items=("auto", "mm", "cm", "m", "in", "ft"),
@@ -133,6 +138,13 @@ def _configure_parameter_interface(hda_node) -> None:
     )
     folder.addParmTemplate(hou.ToggleParmTemplate("apply_scale", "Apply Scale", default_value=True))
     folder.addParmTemplate(
+        hou.ToggleParmTemplate(
+            "relink_textures",
+            "Auto-Find Material Textures",
+            default_value=True,
+        )
+    )
+    folder.addParmTemplate(
         hou.ToggleParmTemplate("set_attributes", "Set Detail Attributes", default_value=True)
     )
 
@@ -143,7 +155,7 @@ def _configure_parameter_interface(hda_node) -> None:
     else:
         ptg.append(folder)
 
-    hda_node.setParmTemplateGroup(ptg)
+    definition.setParmTemplateGroup(ptg)
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -165,3 +177,6 @@ def main(argv: list[str] | None = None) -> int:
     print(output)
     return 0
 
+
+if __name__ == "__main__":
+    raise SystemExit(main())
