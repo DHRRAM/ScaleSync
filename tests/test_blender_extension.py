@@ -18,7 +18,7 @@ def test_build_blender_extension_is_self_contained(tmp_path: Path) -> None:
         assert 'type = "add-on"' in manifest
         assert "from .scalesync.blender.addon import register, unregister" in entrypoint
         assert "scalesync/default_config.json" in names
-        assert "scalesync/export_metadata.py" in names
+        assert "scalesync/embedded_metadata.py" in names
         assert "scalesync/textures.py" in names
         assert "scalesync/blender/addon.py" in names
         assert "scalesync/blender/formats.py" in names

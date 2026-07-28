@@ -13,6 +13,7 @@ from ..constants import (
     SOURCE_UNIT_ATTR,
 )
 from ..errors import ScaleSyncError
+from ..embedded_metadata import exported_unit_attribute, source_dcc_attribute
 from ..textures import TextureSearchIndex
 
 
@@ -166,6 +167,7 @@ class BlenderAdapter:
                 global_scale=1.0,
                 apply_unit_scale=True,
                 apply_scale_options="FBX_SCALE_UNITS",
+                use_custom_props=True,
             )
         elif ext == ".obj":
             operator = self._resolve_operator(
@@ -186,6 +188,7 @@ class BlenderAdapter:
                 filepath=str(path),
                 selected_objects_only=True,
                 meters_per_unit=1.0,
+                export_custom_properties=True,
             )
         else:
             raise ScaleSyncError(f"Unsupported Blender export format: {ext}")
@@ -295,6 +298,23 @@ class BlenderAdapter:
         obj[SOURCE_DCC_ATTR] = source_dcc
         obj[NORMALIZED_ATTR] = True
         obj[APPLIED_SCALE_ATTR] = float(applied_scale)
+
+    def ensure_export_metadata(
+        self,
+        objects: Iterable[Any],
+        *,
+        exported_unit: str,
+        source_dcc: str,
+    ) -> None:
+        """Add custom properties that are serialized into FBX and USD."""
+
+        unit_attr = exported_unit_attribute(exported_unit)
+        dcc_attr = source_dcc_attribute(source_dcc)
+        for obj in objects:
+            if not self.object_exists(obj):
+                continue
+            obj[unit_attr] = True
+            obj[dcc_attr] = True
 
     def duplicate_hierarchies(self, roots: Iterable[Any]) -> tuple[list[Any], list[Any]]:
         source_roots = self.root_objects(roots)

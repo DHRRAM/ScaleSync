@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import Any, Iterable
 
 from ..config import ScaleSyncConfig, load_config
-from ..export_metadata import write_export_metadata
+from ..embedded_metadata import finalize_embedded_metadata
 from .adapter import BlenderAdapter
 from .validator import BlenderScaleValidator
 
@@ -50,27 +50,28 @@ class BlenderScaleExporter:
 
             if self.config.blender.export_in_meters:
                 self.adapter.set_scene_unit_scale(1.0)
+                self.adapter.ensure_export_metadata(
+                    duplicates,
+                    exported_unit=self.config.resolver.canonical_unit,
+                    source_dcc="blender",
+                )
             self.adapter.select_objects(duplicates)
             self.adapter.export_selected(file_path)
+            if self.config.blender.export_in_meters:
+                finalize_embedded_metadata(
+                    file_path,
+                    source_dcc="blender",
+                    exported_unit=self.config.resolver.canonical_unit,
+                )
         finally:
             self.adapter.set_scene_unit_scale(original_unit_scale)
             self.adapter.delete_objects(duplicates)
             self.adapter.restore_selection(selection)
 
-        metadata_file = None
         export_path = Path(file_path)
-        if self.config.blender.export_in_meters and export_path.is_file():
-            metadata_file = write_export_metadata(
-                export_path,
-                source_dcc="blender",
-                exported_unit=self.config.resolver.canonical_unit,
-            )
-
         return {
             "file": str(export_path),
-            "metadata_file": (
-                str(metadata_file) if metadata_file is not None else None
-            ),
+            "metadata_embedded": bool(self.config.blender.export_in_meters),
             "source_roots": [
                 self.adapter.object_name(root) for root in root_objects
             ],

@@ -21,7 +21,7 @@ ScaleSync is a cross-DCC scale normalization toolchain for Maya, Blender, and Ho
 - Maya export wrapper:
   - duplicates selection
   - converts to meters
-  - records the exported meter unit for downstream DCCs
+  - embeds the exported meter unit inside the geometry file
   - exports clean temp copy
 - Maya plugin menu:
   - one-click UI, import, validation, freeze-scale fix, scene scan, and export actions
@@ -31,12 +31,12 @@ ScaleSync is a cross-DCC scale normalization toolchain for Maya, Blender, and Ho
   - material import plus fallback texture discovery for adjacent folders and UDIMs
   - transform-aware prevention of duplicate unit scaling
   - validation, apply-scale fix, scene scan, and meter-normalized export
-  - records canonical export units to prevent downstream double-scaling
+  - embeds canonical export units to prevent downstream double-scaling
 - Houdini integration:
   - package installer
   - shared scale logic
   - automatic relinking of material file parameters used by incoming geometry
-  - recognizes ScaleSync export provenance before applying unit conversion
+  - recognizes embedded ScaleSync export provenance before applying unit conversion
   - HDA builder script for a ScaleSync SOP asset
 
 ## Install

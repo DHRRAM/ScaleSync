@@ -137,6 +137,7 @@ class _ExportAdapterStub:
         self.selected_calls: list[list[str]] = []
         self.export_calls: list[tuple[str, str | None]] = []
         self.deleted_calls: list[list[str]] = []
+        self.export_metadata_calls: list[tuple[list[str], str, str]] = []
 
     def selected_transforms(self) -> list[str]:
         return ["|assetA"]
@@ -169,6 +170,17 @@ class _ExportAdapterStub:
 
     def select_nodes(self, nodes) -> None:
         self.selected_calls.append(list(nodes))
+
+    def ensure_export_metadata(
+        self,
+        nodes,
+        *,
+        exported_unit: str,
+        source_dcc: str,
+    ) -> None:
+        self.export_metadata_calls.append(
+            (list(nodes), exported_unit, source_dcc)
+        )
 
     def export_selected(self, file_path, file_type=None) -> None:
         self.export_calls.append((str(file_path), file_type))
@@ -272,9 +284,13 @@ def test_exporter_uses_safe_duplicate_pipeline_for_houdini() -> None:
     assert adapter.freeze_calls == [["|assetA_dup"]]
     assert adapter.history_calls == [["|assetA_dup"]]
     assert adapter.selected_calls == [["|assetA_dup"]]
+    assert adapter.export_metadata_calls == [
+        (["|assetA_dup"], "m", "maya")
+    ]
     assert adapter.export_calls == [("out.fbx", "FBX export")]
     assert adapter.deleted_calls == [["|assetA_dup"]]
     assert result["export_scale_factor"] == 0.01
+    assert result["metadata_embedded"] is True
 
 
 def test_fix_selection_freezes_uniform_non_one_scale() -> None:

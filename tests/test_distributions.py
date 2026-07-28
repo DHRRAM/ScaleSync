@@ -23,6 +23,7 @@ def test_maya_distribution_is_portable(tmp_path: Path) -> None:
     assert module.startswith("+ ScaleSync 1.2.3 ./ScaleSync")
     assert "ScaleSync/scalesync/maya/importer.py" in "\n".join(names)
     assert f"{prefix}/payload/ScaleSync/scalesync/textures.py" in names
+    assert f"{prefix}/payload/ScaleSync/scalesync/embedded_metadata.py" in names
     assert f"{prefix}/payload/ScaleSync/scalesync/version.py" in names
     assert "cmds.loadPlugin" in installer
     assert "autoload=True" in installer
@@ -56,4 +57,5 @@ def test_houdini_distribution_is_portable(tmp_path: Path) -> None:
     )
     assert f"{prefix}/payload/ScaleSync/scalesync/houdini/node_runtime.py" in names
     assert f"{prefix}/payload/ScaleSync/scalesync/textures.py" in names
+    assert f"{prefix}/payload/ScaleSync/scalesync/embedded_metadata.py" in names
     assert not any("__pycache__" in name for name in names)

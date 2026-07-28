@@ -20,7 +20,6 @@ The generated HDA auto-detects supported upstream source files and relinks
 missing file-reference parameters on materials assigned to the incoming
 geometry. Disable `Auto-Find Material Textures` on the HDA to opt out.
 
-ScaleSync exports include a sibling `.scalesync.json` provenance file. Keep it
-beside the FBX, OBJ, or USD file so the HDA can distinguish the original DCC
-from the units actually written by ScaleSync. OBJ files also contain the same
-metadata in a comment header.
+ScaleSync exports carry provenance inside the FBX, OBJ, or USD geometry file.
+The HDA reads that embedded metadata to distinguish the original DCC from the
+units actually written by ScaleSync.

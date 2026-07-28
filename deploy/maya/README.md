@@ -23,6 +23,6 @@ ScaleSync import searches the imported asset's folder tree for missing file
 textures and relinks Maya filename attributes, including renderer-specific
 texture nodes exposed through Maya's filename-attribute API.
 
-Meter-normalized exports write a `.scalesync.json` provenance file beside the
-asset. Keep both files together so downstream ScaleSync integrations do not
-reapply Maya's centimeter conversion.
+Meter-normalized exports carry ScaleSync provenance inside the geometry file,
+so assets remain self-describing when transferred through asset-management
+systems that retain only the FBX, OBJ, or USD file.

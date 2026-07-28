@@ -17,7 +17,7 @@ PACKAGE_FILES = (
     "scalesync/constants.py",
     "scalesync/default_config.json",
     "scalesync/errors.py",
-    "scalesync/export_metadata.py",
+    "scalesync/embedded_metadata.py",
     "scalesync/model.py",
     "scalesync/textures.py",
     "scalesync/units.py",

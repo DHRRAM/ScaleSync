@@ -13,6 +13,7 @@ from ..constants import (
     SOURCE_UNIT_ATTR,
 )
 from ..errors import ScaleSyncError
+from ..embedded_metadata import exported_unit_attribute, source_dcc_attribute
 from ..textures import TextureSearchIndex
 
 
@@ -274,6 +275,21 @@ class MayaCmdsAdapter:
         self._ensure_string_attr(node, SOURCE_DCC_ATTR, source_dcc)
         self._ensure_bool_attr(node, NORMALIZED_ATTR, True)
         self._ensure_float_attr(node, APPLIED_SCALE_ATTR, applied_scale)
+
+    def ensure_export_metadata(
+        self,
+        nodes: Iterable[str],
+        *,
+        exported_unit: str,
+        source_dcc: str,
+    ) -> None:
+        """Add exportable transform properties carrying ScaleSync provenance."""
+
+        unit_attr = exported_unit_attribute(exported_unit)
+        dcc_attr = source_dcc_attribute(source_dcc)
+        for node in nodes:
+            self._ensure_bool_attr(node, unit_attr, True)
+            self._ensure_bool_attr(node, dcc_attr, True)
 
     def current_linear_unit(self) -> str:
         value = self.cmds.currentUnit(query=True, linear=True)

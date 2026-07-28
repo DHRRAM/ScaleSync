@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import Iterable, Optional
 
 from ..config import ScaleSyncConfig, load_config
-from ..export_metadata import write_export_metadata
+from ..embedded_metadata import finalize_embedded_metadata
 from .adapter import MayaCmdsAdapter
 from .validator import MayaScaleValidator
 
@@ -52,25 +52,27 @@ class MayaScaleExporter:
                 self.adapter.freeze_scale(duplicates)
                 self.adapter.delete_history(duplicates)
 
+            if self.config.maya.export_in_meters:
+                self.adapter.ensure_export_metadata(
+                    duplicates,
+                    exported_unit=self.config.resolver.canonical_unit,
+                    source_dcc="maya",
+                )
             self.adapter.select_nodes(duplicates)
             self.adapter.export_selected(file_path, file_type=file_type)
+            if self.config.maya.export_in_meters:
+                finalize_embedded_metadata(
+                    file_path,
+                    source_dcc="maya",
+                    exported_unit=self.config.resolver.canonical_unit,
+                )
         finally:
             self.adapter.delete_nodes(duplicates)
 
-        metadata_file = None
         export_path = Path(file_path)
-        if self.config.maya.export_in_meters and export_path.is_file():
-            metadata_file = write_export_metadata(
-                export_path,
-                source_dcc="maya",
-                exported_unit=self.config.resolver.canonical_unit,
-            )
-
         return {
             "file": str(export_path),
-            "metadata_file": (
-                str(metadata_file) if metadata_file is not None else None
-            ),
+            "metadata_embedded": bool(self.config.maya.export_in_meters),
             "source_roots": root_nodes,
             "duplicate_roots": duplicates,
             "export_scale_factor": export_scale,
